@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ENV_PREFIX="${JUPYTER_ENV_PREFIX:-/home/zhangyifan1/software/miniforge/envs/R443}"
-for name in R Rscript jupyter python; do
-  if [[ ! -x "${ENV_PREFIX}/bin/${name}" ]]; then
-    echo "Missing ${ENV_PREFIX}/bin/${name}; set JUPYTER_ENV_PREFIX to an environment with R, IRkernel and JupyterLab." >&2
+JUPYTER_ENV_PREFIX="${JUPYTER_ENV_PREFIX:-/home/zhangyifan1/software/miniforge/envs/R443}"
+R_ENV_PREFIX="${R_KERNEL_ENV_PREFIX:-${JUPYTER_ENV_PREFIX}}"
+for name in R Rscript; do
+  if [[ ! -x "${R_ENV_PREFIX}/bin/${name}" ]]; then
+    echo "Missing ${R_ENV_PREFIX}/bin/${name}; set R_KERNEL_ENV_PREFIX to an environment with R and IRkernel." >&2
     exit 1
   fi
 done
-export PATH="${ENV_PREFIX}/bin:${PATH}"
-export R_HOME="$("${ENV_PREFIX}/bin/R" RHOME)"
-if ! "${ENV_PREFIX}/bin/Rscript" --vanilla -e 'quit(status=if (requireNamespace("IRkernel", quietly=TRUE)) 0 else 1)' >/dev/null 2>&1; then
-  echo "IRkernel is missing in ${ENV_PREFIX}. Install r-irkernel into this environment, then rerun." >&2
+for name in jupyter python; do
+  if [[ ! -x "${JUPYTER_ENV_PREFIX}/bin/${name}" ]]; then
+    echo "Missing ${JUPYTER_ENV_PREFIX}/bin/${name}; set JUPYTER_ENV_PREFIX to an environment with JupyterLab." >&2
+    exit 1
+  fi
+done
+export PATH="${R_ENV_PREFIX}/bin:${JUPYTER_ENV_PREFIX}/bin:${PATH}"
+export R_HOME="$("${R_ENV_PREFIX}/bin/R" RHOME)"
+if ! "${R_ENV_PREFIX}/bin/Rscript" --vanilla -e 'quit(status=if (requireNamespace("IRkernel", quietly=TRUE)) 0 else 1)' >/dev/null 2>&1; then
+  echo "IRkernel is missing in ${R_ENV_PREFIX}. Install r-irkernel into this environment, then rerun." >&2
   exit 1
 fi
 KERNEL_NAME="${R_KERNEL_NAME:-ir443}"
@@ -18,10 +25,10 @@ if [[ ! "${KERNEL_NAME}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
   echo "Invalid R_KERNEL_NAME: ${KERNEL_NAME}" >&2
   exit 1
 fi
-DATA_DIR="$("${ENV_PREFIX}/bin/jupyter" --data-dir)"
+DATA_DIR="$("${JUPYTER_ENV_PREFIX}/bin/jupyter" --data-dir)"
 KERNEL_DIR="${DATA_DIR}/kernels/${KERNEL_NAME}"
 mkdir -p "${KERNEL_DIR}"
-"${ENV_PREFIX}/bin/python" - "${KERNEL_DIR}/kernel.json" "${ENV_PREFIX}/bin/R" "${R_HOME}" "${KERNEL_NAME}" <<'PY'
+"${JUPYTER_ENV_PREFIX}/bin/python" - "${KERNEL_DIR}/kernel.json" "${R_ENV_PREFIX}/bin/R" "${R_HOME}" "${KERNEL_NAME}" <<'PY'
 import json
 import pathlib
 import sys
@@ -34,7 +41,7 @@ spec = {
 }
 pathlib.Path(target).write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
 PY
-"${ENV_PREFIX}/bin/jupyter" kernelspec list --json | "${ENV_PREFIX}/bin/python" -c '
+"${JUPYTER_ENV_PREFIX}/bin/jupyter" kernelspec list --json | "${JUPYTER_ENV_PREFIX}/bin/python" -c '
 import json, sys
 name = sys.argv[1]
 specs = json.load(sys.stdin)["kernelspecs"]

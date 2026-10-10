@@ -14,13 +14,24 @@ if [[ ! "${PORT}" =~ ^[0-9]+$ ]] || (( PORT < 1 || PORT > 65535 )); then
   exit 1
 fi
 export PATH="${ENV_PREFIX}/bin:${PATH}"
-"${SCRIPT_DIR}/setup_r_kernel.sh"
+case "${CONFIGURE_R_KERNEL:-auto}" in
+  auto)
+    if ! "${SCRIPT_DIR}/setup_r_kernel.sh"; then
+      echo "R kernel setup unavailable; starting JupyterLab with other installed kernels." >&2
+    fi
+    ;;
+  required) "${SCRIPT_DIR}/setup_r_kernel.sh" ;;
+  off) echo "R kernel setup skipped." >&2 ;;
+  *) echo "CONFIGURE_R_KERNEL must be auto, required or off." >&2; exit 1 ;;
+esac
 BASE_PATH="$("${ENV_PREFIX}/bin/python" - "${NOTEBOOK_GATEWAY_URL}" <<'PY'
 import sys
 from urllib.parse import urlsplit
 url = urlsplit(sys.argv[1])
-if url.scheme != "https" or not url.netloc or not url.path.startswith("/notebook/"):
-    raise SystemExit("Expected an HTTPS notebook gateway URL")
+if (url.scheme != "https" or not url.hostname or
+        not (url.hostname == "dcs.cloud" or url.hostname.endswith(".dcs.cloud")) or
+        not url.path.startswith("/notebook/") or url.query or url.fragment):
+    raise SystemExit("Expected an HTTPS DCS notebook gateway URL")
 print(url.path.rstrip("/") + "/")
 PY
 )"

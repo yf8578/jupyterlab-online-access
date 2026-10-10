@@ -1,10 +1,10 @@
-# Genpilot JupyterLab：R 内核与浏览器访问
+# DCS GenPilot：启动可自主配置内核的 JupyterLab
 
-这个仓库提供 **GenPilot 中调用**的 JupyterLab 启动 skill。它先把 **当前 conda 环境中的 R** 注册为 `ir443` 内核，再通过平台提供的 notebook 网关启动**独立的 JupyterLab**，并输出可复制的 `/lab` 地址。
+这个仓库提供 **DCS GenPilot 中调用**的 JupyterLab 启动 skill。GenPilot 在云端运行脚本，脚本使用 DCS notebook 网关启动**独立的 JupyterLab**，再输出可复制的 `/lab` 地址。打开后可以自己创建 notebook、选用已有的 Python/R/其他内核，并通过 JupyterLab 终端配置新内核。
 
-GenPilot 自带的内嵌 notebook 只显示 Python 时，这个 skill 提供另一条使用 R notebook 的路径：在浏览器打开独立 JupyterLab。它不会改变 GenPilot 内嵌 notebook 的内核下拉框；该下拉框依赖容器 `PATH` 中可探测的 `Rscript`，不读取 Jupyter kernelspec。
+GenPilot 自带的内嵌 notebook 只显示 Python 时，这个 skill 提供独立 JupyterLab。它不会改变 GenPilot 内嵌 notebook 的内核下拉框；该下拉框依赖容器 `PATH` 中可探测的 `Rscript`，不读取 Jupyter kernelspec。独立 JupyterLab 则使用 Jupyter kernelspec。
 
-截图里出现 R 图标只说明 Jupyter 找到了一个 kernelspec，不能证明其 `argv` 仍指向有效的 R。`setup_r_kernel.sh` 每次启动前更新 kernelspec，避免旧配置指向别的环境。
+截图里出现 R 图标只说明 Jupyter 找到了一个 kernelspec，不能证明其 `argv` 仍指向有效的 R。启动脚本默认尝试更新 `ir443`，若 R 或 IRkernel 不可用仍会启动 JupyterLab，供其他内核使用。已有的其他 kernelspec 不会被改动。
 
 ## 云端准备
 
@@ -12,13 +12,13 @@ GenPilot 自带的内嵌 notebook 只显示 Python 时，这个 skill 提供另�
 git clone https://github.com/yf8578/jupyterlab-online-access.git /work/zhangyifan1/jupyterlab-online-access
 ```
 
-默认环境：`/home/zhangyifan1/software/miniforge/envs/R443`。它需包含 `R`、`Rscript`、`IRkernel`、`python`、`jupyter` 和 `jupyter-lab`。如 IRkernel 尚未安装，可在云端运行：
+默认 JupyterLab 环境：`/home/zhangyifan1/software/miniforge/envs/R443`。它需包含 `python`、`jupyter` 和 `jupyter-lab`。如果还要配置 R 内核，R 环境需包含 `R`、`Rscript` 和 `IRkernel`。如 IRkernel 尚未安装，可在云端运行：
 
 ```bash
 conda install -p /home/zhangyifan1/software/miniforge/envs/R443 -c conda-forge r-irkernel
 ```
 
-实际安装是否可行取决于云平台的 conda 权限和网络。若环境位于别处，设置 `JUPYTER_ENV_PREFIX`。可用 `NOTEBOOK_ROOT_DIR` 指定文件浏览器根目录，默认 `/work/zhangyifan1`。
+实际安装是否可行取决于云平台的 conda 权限和网络。若 JupyterLab 环境位于别处，设置 `JUPYTER_ENV_PREFIX`；若 R 位于另一个环境，设置 `R_KERNEL_ENV_PREFIX`。`CONFIGURE_R_KERNEL=auto`（默认）会尝试配置 R，失败后继续启动；`required` 要求 R 配置成功；`off` 完全跳过 R。可用 `NOTEBOOK_ROOT_DIR` 指定文件浏览器根目录，默认 `/work/zhangyifan1`。
 
 ## 在 Genpilot 中启动
 
@@ -46,7 +46,7 @@ bash /work/zhangyifan1/jupyterlab-online-access/references/setup_r_kernel.sh
 "$JUPYTER_ENV_PREFIX/bin/jupyter" kernelspec list --json
 ```
 
-确认 `ir443` 的 `language` 是 `R`，且 `argv[0]` 指向该环境的 `bin/R`。浏览器中新建 **R (ir443)** notebook，运行 `R.version.string` 检查实际版本。`R` 和 `R 4.4.3` 等已有图标可能来自其他 kernelspec，不应只凭图标判断配置成功。
+确认 `ir443` 的 `language` 是 `R`，且 `argv[0]` 指向目标 R 环境的 `bin/R`。浏览器中新建 **R (ir443)** notebook，运行 `R.version.string` 检查实际版本。`R` 和 `R 4.4.3` 等已有图标可能来自其他 kernelspec，不应只凭图标判断配置成功。其他内核可按 JupyterLab 的常规方式安装和注册。
 
 ## 网关与安全
 
