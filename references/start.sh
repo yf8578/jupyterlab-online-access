@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_PREFIX="${JUPYTER_ENV_PREFIX:-/home/zhangyifan1/software/miniforge/envs/R443}"
+USER_NAME="$(id -un)"
+ENV_PREFIX="${JUPYTER_ENV_PREFIX:-/home/${USER_NAME}/software/miniforge/envs/R443}"
 JUPYTER_LAB="${ENV_PREFIX}/bin/jupyter-lab"
 if [[ ! -x "${JUPYTER_LAB}" ]]; then
   echo "Missing JupyterLab: ${JUPYTER_LAB}; set JUPYTER_ENV_PREFIX." >&2
@@ -35,7 +36,7 @@ if (url.scheme != "https" or not url.hostname or
 print(url.path.rstrip("/") + "/")
 PY
 )"
-NOTEBOOK_ROOT_DIR="${NOTEBOOK_ROOT_DIR:-/work/zhangyifan1}"
+NOTEBOOK_ROOT_DIR="${NOTEBOOK_ROOT_DIR:-/work/${USER_NAME}}"
 if [[ ! -d "${NOTEBOOK_ROOT_DIR}" ]]; then
   echo "Notebook root directory does not exist: ${NOTEBOOK_ROOT_DIR}" >&2
   exit 1

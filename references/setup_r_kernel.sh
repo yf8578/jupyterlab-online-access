@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-JUPYTER_ENV_PREFIX="${JUPYTER_ENV_PREFIX:-/home/zhangyifan1/software/miniforge/envs/R443}"
+JUPYTER_ENV_PREFIX="${JUPYTER_ENV_PREFIX:-/home/$(id -un)/software/miniforge/envs/R443}"
 R_ENV_PREFIX="${R_KERNEL_ENV_PREFIX:-${JUPYTER_ENV_PREFIX}}"
 for name in R Rscript; do
   if [[ ! -x "${R_ENV_PREFIX}/bin/${name}" ]]; then
@@ -27,6 +27,20 @@ if [[ ! "${KERNEL_NAME}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
 fi
 DATA_DIR="$("${JUPYTER_ENV_PREFIX}/bin/jupyter" --data-dir)"
 KERNEL_DIR="${DATA_DIR}/kernels/${KERNEL_NAME}"
+if [[ "${R_KERNEL_REPLACE:-0}" != 1 ]] && \
+  "${JUPYTER_ENV_PREFIX}/bin/jupyter" kernelspec list --json | \
+  "${JUPYTER_ENV_PREFIX}/bin/python" -c '
+import json, shutil, sys
+item = json.load(sys.stdin).get("kernelspecs", {}).get(sys.argv[1])
+if not item or item["spec"].get("language", "").lower() != "r":
+    raise SystemExit(1)
+argv = item["spec"].get("argv", [])
+if not argv or not shutil.which(argv[0]):
+    raise SystemExit(1)
+print(f"Existing R kernel preserved: {sys.argv[1]}")
+' "${KERNEL_NAME}"; then
+  exit 0
+fi
 mkdir -p "${KERNEL_DIR}"
 "${JUPYTER_ENV_PREFIX}/bin/python" - "${KERNEL_DIR}/kernel.json" "${R_ENV_PREFIX}/bin/R" "${R_HOME}" "${KERNEL_NAME}" <<'PY'
 import json

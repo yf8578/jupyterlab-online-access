@@ -1,61 +1,51 @@
-# DCS GenPilot：启动可自主配置内核的 JupyterLab
+# DCS GenPilot → 在线 JupyterLab
 
-这个仓库提供 **DCS GenPilot 中调用**的 JupyterLab 启动 skill。GenPilot 在云端运行脚本，脚本使用 DCS notebook 网关启动**独立的 JupyterLab**，再输出可复制的 `/lab` 地址。打开后可以自己创建 notebook、选用已有的 Python/R/其他内核，并通过 JupyterLab 终端配置新内核。
+把这个仓库地址交给 **DCS GenPilot**，让它自动安装 skill、启动独立的 JupyterLab，并把可复制的访问地址发给你。进入浏览器后，你可以自己操作终端、文件和已有的 Python、R 或其他内核，也可以继续安装自己的内核。
 
-GenPilot 自带的内嵌 notebook 只显示 Python 时，这个 skill 提供独立 JupyterLab。它不会改变 GenPilot 内嵌 notebook 的内核下拉框；该下拉框依赖容器 `PATH` 中可探测的 `Rscript`，不读取 Jupyter kernelspec。独立 JupyterLab 则使用 Jupyter kernelspec。
+## 直接发给 GenPilot
 
-截图里出现 R 图标只说明 Jupyter 找到了一个 kernelspec，不能证明其 `argv` 仍指向有效的 R。启动脚本默认尝试更新 `ir443`，若 R 或 IRkernel 不可用仍会启动 JupyterLab，供其他内核使用。已有的其他 kernelspec 不会被改动。
-
-## 云端准备
-
-```bash
-git clone https://github.com/yf8578/jupyterlab-online-access.git /work/zhangyifan1/jupyterlab-online-access
-```
-
-默认 JupyterLab 环境：`/home/zhangyifan1/software/miniforge/envs/R443`。它需包含 `python`、`jupyter` 和 `jupyter-lab`。如果还要配置 R 内核，R 环境需包含 `R`、`Rscript` 和 `IRkernel`。如 IRkernel 尚未安装，可在云端运行：
-
-```bash
-conda install -p /home/zhangyifan1/software/miniforge/envs/R443 -c conda-forge r-irkernel
-```
-
-实际安装是否可行取决于云平台的 conda 权限和网络。若 JupyterLab 环境位于别处，设置 `JUPYTER_ENV_PREFIX`；若 R 位于另一个环境，设置 `R_KERNEL_ENV_PREFIX`。`CONFIGURE_R_KERNEL=auto`（默认）会尝试配置 R，失败后继续启动；`required` 要求 R 配置成功；`off` 完全跳过 R。可用 `NOTEBOOK_ROOT_DIR` 指定文件浏览器根目录，默认 `/work/zhangyifan1`。
-
-## 在 Genpilot 中启动
-
-用**云端脚本运行器**运行：
+在 GenPilot 对话框粘贴下面这段话即可。首次使用会安装；以后说“打开 JupyterLab”就会自动调用已安装的 skill。
 
 ```text
-/work/zhangyifan1/jupyterlab-online-access/references/start.sh
+请安装并使用这个 DCS GenPilot skill：https://github.com/yf8578/jupyterlab-online-access
+请在云任务 Pod 中检查已有版本；需要时克隆仓库并运行 references/install.sh，加载 general/jupyterlab-online-access，然后启动独立的 JupyterLab。确认网关和 /lab 都可访问后，把本次完整网址放在代码块中给我，我会复制到已登录 DCS 的浏览器地址栏打开。以后我说“打开 JupyterLab”时直接调用这个 skill。
 ```
 
-运行器应注入 `NOTEBOOK_GATEWAY_URL` 和 `STREAMLIT_PORT`，并返回 `notebook_gateway_url` 与 `selected_app_port`。脚本会打印：
+GenPilot 首次运行云端脚本时可能弹出平台确认卡片；在卡片中按自己的意愿操作。你无需手工 `git clone`、配置网关路径或猜端口。若当前对话不能即时发现新装的 skill，GenPilot 可从安装路径读取 `SKILL.md` 完成本次启动，新对话会正常索引。
 
-```text
-JupyterLab URL: https://<网关主机>/notebook/st-gw/<任务>/<槽位>/<用户>/lab
-```
+## 它自动做什么
 
-复制完整 URL 到已登录 DCS 的浏览器地址栏。此地址由**本次云端任务的网关 URL**产生，仓库中的示例不能直接访问。服务须保持运行，地址才可用。
+1. 检查个人 skill 列表；从本仓库安装或更新到 `/home/<用户>/skills/main/general/jupyterlab-online-access`。旧版会备份到 `/work/<用户>/jupyterlab-skill-backups/`。
+2. 检查云端 JupyterLab。默认使用 `/home/<用户>/software/miniforge/envs/R443`；缺失时按 DCS 软件安装流程补齐。R 内核是可选项，缺失不会阻止其他内核启动；指向可执行 R 的同名配置也不会被覆盖。
+3. 通过 `cloud_terminal_run_script_file` 取得平台分配的 Web 槽位、网关 URL 和端口，启动 JupyterLab。
+4. 检查本地 `/static/genpilot_marker.txt` 与 `/lab`，再用 DCS 的 `resolve_notebook_app_access` 核验网关，最后输出本次可复制的网址。
 
-## 验证 R 内核
+**GenPilot 内嵌 notebook 与这里启动的 JupyterLab 是两套界面。** 内嵌编辑器的内核菜单依赖容器 `PATH` 中的 `Rscript`；这个 skill 不修改它。独立 JupyterLab 读取 Jupyter kernelspec，因此可以选择或安装自己的内核。
 
-在同一云端环境执行：
+## 再次使用或更新
 
-```bash
-export JUPYTER_ENV_PREFIX=/home/zhangyifan1/software/miniforge/envs/R443
-bash /work/zhangyifan1/jupyterlab-online-access/references/setup_r_kernel.sh
-"$JUPYTER_ENV_PREFIX/bin/jupyter" kernelspec list --json
-```
+- 直接说“打开 JupyterLab”或“给我 JupyterLab 浏览器地址”，GenPilot 会自动调用已安装的 skill。
+- 要更新时说“从 https://github.com/yf8578/jupyterlab-online-access 更新这个 skill，然后打开 JupyterLab”。安装脚本会备份旧版。
+- 容器停机、网关会话变化或链接失效后，再说“重新启动 JupyterLab”，它会生成当前任务的新地址。
 
-确认 `ir443` 的 `language` 是 `R`，且 `argv[0]` 指向目标 R 环境的 `bin/R`。浏览器中新建 **R (ir443)** notebook，运行 `R.version.string` 检查实际版本。`R` 和 `R 4.4.3` 等已有图标可能来自其他 kernelspec，不应只凭图标判断配置成功。其他内核可按 JupyterLab 的常规方式安装和注册。
+## 可选配置
 
-## 网关与安全
+| 变量 | 用途 | 默认值 |
+|---|---|---|
+| `JUPYTER_ENV_PREFIX` | 含 `jupyter-lab` 的 conda 环境 | `/home/<用户>/software/miniforge/envs/R443` |
+| `R_KERNEL_ENV_PREFIX` | 需要注册的 R 环境 | 与 `JUPYTER_ENV_PREFIX` 相同 |
+| `CONFIGURE_R_KERNEL` | `auto` 尝试注册；`required` 必须成功；`off` 跳过 | `auto` |
+| `R_KERNEL_NAME` | R kernelspec 名称 | `ir443` |
+| `R_KERNEL_REPLACE` | 设为 `1` 才覆盖已有有效的同名 R 内核 | `0` |
+| `NOTEBOOK_ROOT_DIR` | JupyterLab 文件浏览器根目录 | `/work/<用户>` |
 
-`start.sh` 关闭 Jupyter token，依赖 DCS 网关验证用户身份。只在已经鉴权且限制直连云端端口的网关下使用。启动脚本不携带 API 密钥，也不预设 AI 插件的密钥。
+`start.sh` 关闭 Jupyter token，仅限已鉴权且不能直连服务端口的 DCS notebook 网关。仓库不保存 API 密钥。R 图标出现只证明 kernelspec 存在；真正验证 R 还要在 notebook 中运行 `R.version.string`。
 
-本仓库无法替代云平台对 R 软件包安装、端口分配或网关权限的管理。如果本地 `/lab` 健康检查为 200 而浏览器仍不可达，应检查用户端网络、登录状态和网关规则。
+## 仓库文件
 
-## 文件
+- `SKILL.md`：GenPilot 自动触发、安装、启动和交付链接的指令。
+- `references/install.sh`：安装或更新个人 skill，并备份旧版。
+- `references/start.sh`：通过 DCS 网关启动 JupyterLab。
+- `references/setup_r_kernel.sh`：可选地注册 R 内核，不影响其他内核。
 
-- `SKILL.md`：供 Genpilot 使用的操作说明。
-- `references/setup_r_kernel.sh`：注册并验证当前环境的 R 内核。
-- `references/start.sh`：启动 JupyterLab 并输出浏览器地址。
+若 AI 无法直接读取 GitHub，可下载 [Releases](https://github.com/yf8578/jupyterlab-online-access/releases) 中的 ZIP，使用 GenPilot 技能商店的“上传技能”导入；这是备用方式。
