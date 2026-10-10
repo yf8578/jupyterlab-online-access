@@ -1,6 +1,8 @@
 # Genpilot JupyterLab：R 内核与浏览器访问
 
-这个仓库提供 Genpilot 云平台使用的 JupyterLab 启动脚本。它先把 **当前 conda 环境中的 R** 注册为 `ir443` 内核，再通过平台提供的 notebook 网关启动 JupyterLab，并输出可复制的 `/lab` 地址。
+这个仓库提供 **GenPilot 中调用**的 JupyterLab 启动 skill。它先把 **当前 conda 环境中的 R** 注册为 `ir443` 内核，再通过平台提供的 notebook 网关启动**独立的 JupyterLab**，并输出可复制的 `/lab` 地址。
+
+GenPilot 自带的内嵌 notebook 只显示 Python 时，这个 skill 提供另一条使用 R notebook 的路径：在浏览器打开独立 JupyterLab。它不会改变 GenPilot 内嵌 notebook 的内核下拉框；该下拉框依赖容器 `PATH` 中可探测的 `Rscript`，不读取 Jupyter kernelspec。
 
 截图里出现 R 图标只说明 Jupyter 找到了一个 kernelspec，不能证明其 `argv` 仍指向有效的 R。`setup_r_kernel.sh` 每次启动前更新 kernelspec，避免旧配置指向别的环境。
 

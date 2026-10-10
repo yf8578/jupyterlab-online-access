@@ -6,7 +6,7 @@ version: 1.1.0
 
 # 在线 JupyterLab
 
-当用户要求启动在线 JupyterLab、使用 R notebook 或获取浏览器访问网址时使用本 skill。
+当用户在 GenPilot 中要求启动在线 JupyterLab、使用 R notebook 或获取浏览器访问网址时使用本 skill。本 skill 启动独立的 JupyterLab；GenPilot 内嵌 notebook 的内核选择器按 `PATH` 探测 `Rscript`，不会因为注册 Jupyter kernelspec 就出现 R。
 
 ## 环境
 
